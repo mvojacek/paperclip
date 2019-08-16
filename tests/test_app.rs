@@ -623,6 +623,45 @@ fn test_impl_traits() {
 }
 
 #[test]
+fn test_multiple_method_routes() {  // issue #71
+    #[api_v2_operation]
+    fn test_get() -> String {
+        "get".into()
+    }
+
+    #[api_v2_operation]
+    fn test_post() -> String {
+        "post".into()
+    }
+
+    run_and_check_app(
+        || {
+            App::new()
+                .wrap_api()
+                .with_json_spec_at("/api/spec")
+                .route("/foo", web::get().to(test_get))
+                .route("/foo", web::post().to(test_post))
+                .build()
+        },
+        |addr| {
+            let mut resp = CLIENT
+                .get(&format!("http://{}/foo", addr))
+                .send()
+                .expect("request failed?");
+            assert_eq!(resp.status().as_u16(), 200);
+            assert_eq!(resp.text().unwrap(), "get");
+
+            let mut resp = CLIENT
+                .post(&format!("http://{}/foo", addr))
+                .send()
+                .expect("request failed?");
+            assert_eq!(resp.status().as_u16(), 200);
+            assert_eq!(resp.text().unwrap(), "post");
+        },
+    );
+}
+
+#[test]
 fn test_custom_extractor_empty_schema() {
     #[api_v2_schema(empty)]
     struct SomeUselessThing<T>(T);

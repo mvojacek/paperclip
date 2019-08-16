@@ -125,12 +125,7 @@ where
     where
         F: Mountable + HttpServiceFactory + 'static,
     {
-        {
-            let mut api = self.spec.write();
-            api.definitions.extend(factory.definitions().into_iter());
-            factory.update_operations(&mut api.paths);
-        }
-
+        self.update_from_factory(&mut factory);
         self.inner = self.inner.service(factory);
         self
     }
@@ -248,6 +243,15 @@ where
     /// Builds and returns the `actix_web::App`.
     pub fn build(self) -> actix_web::App<T, B> {
         self.inner
+    }
+
+    /// Updates the underlying spec with definitions and operations from the given factory.
+    fn update_from_factory<F>(&mut self, factory: &mut F)
+        where F: Mountable
+    {
+        let mut api = self.spec.write();
+        api.definitions.extend(factory.definitions().into_iter());
+        factory.update_operations(&mut api.paths);
     }
 }
 
